@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>DigiKart - View Products Online</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
+    <style>
+        /* ----------------------------------------------------
+         * 1. THEME VARIABLES & GLOBAL STYLES (NEW DARK CYAN THEME)
+         * ----------------------------------------------------
+         */
+        :root {
+            /* User-Defined Color Palette - Dark Cyan Theme */
+            --bg-main: #0d0f14; /* Ultra Dark Background */
+            --bg-navbar: #1c222d; /* Header/Modal Background */
+            --bg-sidebar: #12151a; /* Card/Input Background */
+            --text-primary: #ffffff; 
+            --text-secondary: #e0e0e0; 
+            --accent-cyan: #42f8f5; /* Main Accent */
+            --glow-shadow: rgba(66, 248, 245, 0.6);
+            --bg-button: #12151a;
+            --border-radius: 8px; /* Used for sm/lg derived from this */
+            --transition-speed: 0.3s;
+
+            /* Derived/Functional Colors (Mapped from old theme to new) */
+            --primary-bg: var(--bg-main); /* Mapped */
+            --secondary-bg: var(--bg-navbar); /* Mapped */
+            --card-bg: var(--bg-sidebar); /* Mapped */
+            --accent-color: var(--accent-cyan); /* Mapped */
+            --info-color: var(--accent-cyan); /* Mapped */
+            
+            /* Secondary Accent, Success, Danger (Keeping for distinct contrast) */
+            --secondary-accent: #ff077a; /* NEON PINK/MAGENTA */
+            --success-color: #39ff14; /* NEON GREEN */
+            --danger-color: #ff4747; /* RED */
+            
+            --border-color: #334057; /* Darker border for contrast */
+            --shadow: 0 0 15px var(--glow-shadow);
+            --transition: all 0.3s ease;
+            
+            /* Dimensions (Keeping original logic) */
+            --border-radius-sm: 8px;
+            --border-radius-lg: 12px;
+            --border-radius-full: 9999px;
+            --max-content-width: 1400px;
+        }
+
+        /* Light Mode Variables - For toggle functionality */
+        body.light-mode {
+            --primary-bg: #f4f4f4;
+            --secondary-bg: #ffffff;
+            --card-bg: #eeeeee;
+            --text-primary: #141414;
+            --text-secondary: #555555;
+            --border-color: #ddd;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --accent-color: #008080; /* Darker cyan in light mode */
+            --secondary-accent: #cc0066;
+            --info-color: #00aaaa;
+            --bg-main: #f4f4f4; 
+            --bg-navbar: #ffffff; 
+            --bg-sidebar: #eeeeee; 
+            --accent-cyan: #008080; 
+            --glow-shadow: rgba(0, 128, 128, 0.4);
+            --bg-button: #e0e0e0;
+        }
+
+        /* Global Reset */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            /* Hacker Style Font */
+            font-family: 'Consolas', 'Courier New', monospace, sans-serif;
+        }
+
+        body {
+            background-color: var(--primary-bg); /* Now maps to --bg-main */
+            color: var(--text-primary);
+            transition: var(--transition);
+            min-height: 100vh;
+            padding-bottom: 60px;
+            overflow-x: hidden;
+        }
+
+        /* ----------------------------------------------------
+         * 2. HEADER & SEARCH
+         * ----------------------------------------------------
+         */
+        #user-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--secondary-bg); /* Now maps to --bg-navbar */
+            padding: 10px 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            z-index: 500;
+            height: 60px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .logo {
+            font-size: 1.6em;
+            font-weight: bold;
+            color: var(--accent-color); /* Now maps to --accent-cyan */
+            text-shadow: 0 0 8px var(--glow-shadow); /* Now uses --glow-shadow */
+            display: flex;
+            align-items: center;
+            flex-shrink: 0;
+            margin-right: 15px;
+        }
+        .logo i {
+            margin-right: 8px;
+            color: var(--info-color); /* Now maps to --accent-cyan */
+            text-shadow: 0 0 5px var(--glow-shadow); 
+        }
+
+        #header-search-container {
+            flex-grow: 1; 
+            position: relative;
+            max-width: 400px; 
+        }
+
+        #header-search-input {
+            width: 100%;
+            padding: 8px 15px;
+            padding-right: 40px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-full);
+            background-color: var(--card-bg); /* Now maps to --bg-sidebar */
+            color: var(--text-primary);
+            font-size: 1em;
+            transition: var(--transition);
+        }
+        #header-search-input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 5px var(--accent-color);
+            outline: none;
+        }
+        
+        #header-search-container i {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        /* Desktop Nav - Hidden on mobile */
+        #desktop-nav {
+            display: none; 
+            position: fixed;
+            top: 60px; 
+            left: 0;
+            width: 100%;
+            background-color: var(--card-bg); /* Now maps to --bg-sidebar */
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 499;
+            transition: var(--transition);
+            border-bottom: 1px solid var(--border-color);
+        }
+        #desktop-nav ul {
+            max-width: var(--max-content-width);
+            margin: 0 auto;
+            display: flex;
+            list-style: none;
+            padding: 0 20px;
+            gap: 20px;
+        }
+        #desktop-nav a {
+            color: var(--text-primary);
+            text-decoration: none;
+            padding: 10px 0;
+            display: block;
+            font-size: 0.9em;
+            transition: color 0.2s, text-shadow 0.2s;
+            white-space: nowrap;
+        }
+        #desktop-nav a:hover {
+            color: var(--secondary-accent);
+            text-shadow: 0 0 5px var(--secondary-accent);
+        }
+        
+        @media (min-width: 1024px) {
+            #user-header {
+                justify-content: flex-start;
+            }
+            .logo {
+                margin-right: 40px;
+            }
+             #main-content {
+                padding-top: 60px; 
+            }
+        }
+        @media (max-width: 1023px) {
+             #main-content {
+                padding-top: 60px;
+            }
+        }
+
+        /* ----------------------------------------------------
+         * 3. MAIN CONTENT LAYOUT
+         * ----------------------------------------------------
+         */
+        #main-content {
+            max-width: var(--max-content-width);
+            margin: 0 auto;
+            padding-top: 60px;
+        }
+
+
+        /* ----------------------------------------------------
+         * 5. CATEGORY FILTER CHIPS
+         * ----------------------------------------------------
+         */
+        #category-chips-container {
+            padding: 10px 10px 0 10px;
+            background-color: var(--primary-bg); /* Now maps to --bg-main */
+            position: sticky;
+            top: 60px;
+            z-index: 400;
+            border-bottom: 1px solid var(--border-color);
+        }
+        #category-chips {
+            display: flex;
+            overflow-x: scroll;
+            gap: 10px;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+        #category-chips::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chip {
+            background-color: var(--card-bg); /* Now maps to --bg-sidebar */
+            color: var(--text-secondary);
+            padding: 8px 15px;
+            border-radius: var(--border-radius-full);
+            font-size: 0.9em;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: var(--transition);
+            border: 1px solid var(--card-bg);
+        }
+
+        .chip:hover {
+            background-color: var(--border-color);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .chip.active {
+            background-color: var(--accent-color);
+            color: var(--primary-bg); /* For contrast */
+            font-weight: bold;
+            box-shadow: 0 0 10px var(--glow-shadow); 
+            border-color: var(--accent-color);
+        }
+
+        /* ----------------------------------------------------
+         * 6. PRODUCTS GRID
+         * ----------------------------------------------------
+         */
+        #products-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            padding: 10px 10px 20px 10px;
+        }
+
+        @media (min-width: 768px) {
+            #products-grid {
+                grid-template-columns: repeat(4, 1fr);
+                gap: 20px;
+                padding: 10px 20px 20px 20px;
+            }
+        }
+
+        @media (min-width: 1024px) {
+            #products-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+
+        .product-grid-card {
+            background-color: var(--card-bg); /* Now maps to --bg-sidebar */
+            border-radius: var(--border-radius-lg);
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            border: 1px solid transparent;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
+            position: relative;
+        }
+
+        .product-grid-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px var(--glow-shadow); 
+            border-color: var(--accent-color);
+        }
+
+        .product-price-tag {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: var(--secondary-accent);
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.75em;
+            font-weight: bold;
+            border-bottom-left-radius: 8px;
+            z-index: 10;
+            box-shadow: 0 0 5px var(--secondary-accent);
+        }
+        .product-price-tag.free {
+            background-color: var(--success-color);
+            box-shadow: 0 0 5px var(--success-color);
+            color: var(--primary-bg);
+        }
+
+        .product-image-wrapper {
+            width: 100%;
+            padding-bottom: 150%;
+            position: relative;
+        }
+
+        .product-image-wrapper img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.2s;
+        }
+
+        .card-details {
+            padding: 10px;
+            text-align: center;
+        }
+
+        .card-details h4 {
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 5px;
+        }
+
+        .card-details p {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            margin: 0;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #empty-grid {
+            grid-column: 1 / -1;
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+            font-style: italic;
+            border: 1px dashed var(--border-color);
+            border-radius: 6px;
+            margin: 20px 10px;
+            display: none;
+        }
+
+        /* ----------------------------------------------------
+         * 7. PRODUCT DETAIL MODAL (UPDATED)
+         * ----------------------------------------------------
+         */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 1000;
+            display: none;
+            overflow-y: auto;
+            backdrop-filter: blur(8px);
+        }
+
+        .modal-content {
+            background: var(--secondary-bg); /* Now maps to --bg-navbar */
+            border: 2px solid var(--accent-color); /* Now maps to --accent-cyan */
+            box-shadow: 0 0 30px var(--glow-shadow); 
+            margin: 50px auto;
+            border-radius: var(--border-radius-lg);
+            max-width: 900px;
+            width: 90%;
+            padding: 20px;
+            position: relative;
+        }
+
+        /* Main Modal Close Button */
+        #modal-close-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--secondary-accent);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 1.5em;
+            cursor: pointer;
+            z-index: 1010;
+            box-shadow: 0 0 10px var(--secondary-accent);
+        }
+
+        .modal-header-content {
+            display: flex;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+
+        .modal-product-image {
+            width: 180px;
+            height: 270px;
+            flex-shrink: 0;
+            border-radius: 6px;
+            object-fit: cover;
+            background-color: var(--card-bg); /* Now maps to --bg-sidebar */
+            border: 1px solid var(--info-color); /* Now maps to --accent-cyan */
+        }
+
+        .modal-details h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: var(--accent-color); /* Now maps to --accent-cyan */
+            text-shadow: 0 0 5px var(--glow-shadow);
+        }
+
+        .modal-category {
+            display: inline-block;
+            background: var(--card-bg); /* Now maps to --bg-sidebar */
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: var(--info-color); /* Now maps to --accent-cyan */
+            margin-bottom: 10px;
+            border: 1px solid var(--info-color);
+        }
+        
+        .modal-details p {
+            line-height: 1.5;
+            color: var(--text-primary);
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
+        }
+
+        /* --- Download Links Container & Styles --- */
+        #download-container-wrapper {
+             margin-top: 15px;
+             padding-top: 10px;
+             border-top: 1px dashed var(--accent-color);
+        }
+        #download-links-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .download-link-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 15px;
+            background-color: var(--success-color);
+            color: var(--primary-bg); /* For contrast */
+            text-decoration: none;
+            font-weight: bold;
+            width: 100%;
+            font-size: 1em;
+            border-radius: var(--border-radius-full);
+            transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s;
+            box-shadow: 0 0 10px rgba(57, 255, 20, 0.5);
+            border: 1px solid var(--success-color);
+        }
+        .download-link-btn.secondary {
+             background-color: var(--info-color);
+             box-shadow: 0 0 10px var(--glow-shadow);
+             color: var(--primary-bg);
+             border: 1px solid var(--info-color);
+        }
+        .download-link-btn i {
+            margin-right: 8px;
+        }
+        .download-link-btn:hover {
+            transform: scale(1.02);
+            box-shadow: 0 0 15px var(--success-color);
+            opacity: 1;
+        }
+        
+        /* --- Serial Key Verification Form --- */
+        #serial-key-form-wrapper {
+             margin-top: 15px;
+             padding: 15px;
+             border: 1px dashed var(--secondary-accent);
+             border-radius: var(--border-radius-sm);
+             background-color: var(--card-bg); /* Now maps to --bg-sidebar */
+        }
+        #serial-key-form-wrapper h4 {
+             color: var(--secondary-accent);
+             margin-bottom: 10px;
+        }
+        #serial-key-form-wrapper input[type="text"] {
+             width: 100%;
+             padding: 10px;
+             margin-bottom: 10px;
+             border: 1px solid var(--border-color);
+             border-radius: 4px;
+             background-color: var(--primary-bg); /* Now maps to --bg-main */
+             color: var(--text-primary);
+        }
+        #serial-key-form-wrapper button {
+             width: 100%;
+             padding: 10px;
+             background-color: var(--secondary-accent);
+             color: white;
+             border: none;
+             border-radius: 4px;
+             cursor: pointer;
+             font-weight: bold;
+             box-shadow: 0 0 8px var(--secondary-accent);
+        }
+        .form-message {
+             padding: 8px;
+             border-radius: 4px;
+             margin-top: 10px;
+             font-size: 0.9em;
+             font-weight: bold;
+             display: none;
+             text-align: center;
+        }
+        .msg-error {
+             background-color: rgba(255, 71, 71, 0.2);
+             color: var(--danger-color);
+        }
+        .msg-success {
+             background-color: rgba(57, 255, 20, 0.2);
+             color: var(--success-color);
+        }
+
+        /* --- Favorite and Report Buttons --- */
+        .modal-actions-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            width: 100%;
+        }
+        .btn-favorite, #btn-report-link {
+            padding: 10px 15px !important;
+            font-weight: 600;
+            transition: background-color 0.2s, transform 0.1s, border-color 0.2s;
+            border-radius: var(--border-radius-full) !important;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            font-size: 0.95em;
+            border: 1px solid;
+            background-color: var(--card-bg); /* Now maps to --bg-sidebar */
+            color: var(--text-primary);
+            border-color: var(--border-color);
+            cursor: pointer;
+        }
+        .btn-favorite:hover, #btn-report-link:hover {
+            transform: translateY(-1px);
+            background-color: var(--border-color);
+            color: var(--info-color);
+            border-color: var(--info-color);
+        }
+        .btn-favorite.favorited {
+            background-color: var(--secondary-accent);
+            color: white;
+            border-color: var(--secondary-accent);
+            box-shadow: 0 0 5px var(--secondary-accent);
+        }
+        
+        /* Responsive Modal */
+        @media (max-width: 600px) {
+            .modal-content {
+                width: 95%;
+                margin: 20px auto;
+                padding: 15px;
+            }
+            #modal-close-btn {
+                top: 5px;
+                right: 5px;
+                width: 30px;
+                height: 30px;
+                font-size: 1.2em;
+            }
+            .modal-header-content {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                gap: 15px;
+            }
+            .modal-product-image {
+                width: 150px;
+                height: 225px;
+            }
+            .modal-actions-group {
+                flex-direction: column;
+            }
+        }
+
+        /* ----------------------------------------------------
+         * 8. SETTINGS/POLICIES MODAL
+         * ----------------------------------------------------
+         */
+        #settings-modal-content, 
+        #policy-modal-content, 
+        #policy-detail-content {
+            background: var(--secondary-bg); /* Now maps to --bg-navbar */
+            border-radius: var(--border-radius-lg);
+            padding: 30px;
+            width: 90%;
+            max-width: 400px;
+            margin: 50px auto;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+            border: 1px solid var(--border-color);
+        }
+        
+        /* Close button for settings/policy modal */
+        #settings-modal-close-btn {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: var(--accent-color); /* Now maps to --accent-cyan */
+            color: var(--primary-bg); /* For contrast */
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            font-size: 1.2em;
+            cursor: pointer;
+            z-index: 1010;
+            box-shadow: 0 0 8px var(--accent-color);
+        }
+        @media (min-width: 601px) {
+            #settings-modal-close-btn {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                width: 40px;
+                height: 40px;
+                font-size: 1.5em;
+            }
+        }
+
+        #settings-modal-content h2, #policy-modal-content h2, #policy-detail-content h2 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            color: var(--accent-color); /* Now maps to --accent-cyan */
+            font-size: 1.5em;
+            text-shadow: 0 0 5px var(--glow-shadow);
+        }
+        
+        /* Settings Card Style */
+        #settings-modal-content .setting-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px;
+            background-color: var(--card-bg); /* Now maps to --bg-sidebar */
+            border-radius: 6px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background-color 0.2s, border-color 0.2s;
+            border: 1px solid var(--card-bg);
+        }
+        #settings-modal-content .setting-card:hover {
+            background-color: #334057; /* Using a dark hover color */
+            border-color: var(--secondary-accent);
+        }
+        #settings-modal-content .setting-card i {
+            font-size: 1.5em;
+            margin-right: 15px;
+            color: var(--info-color);
+        }
+        #settings-modal-content .setting-details {
+            flex-grow: 1;
+        }
+        #settings-modal-content .setting-details h4 {
+            margin: 0;
+            font-size: 1em;
+            color: var(--text-primary);
+        }
+        #settings-modal-content .setting-details p {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+        }
+
+        /* Policy Link Style */
+        .policy-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            color: var(--text-primary);
+            text-decoration: none;
+            border-bottom: 1px solid var(--border-color);
+            transition: color 0.2s;
+            font-size: 1em;
+        }
+        .policy-link i {
+            margin-right: 10px;
+            color: var(--info-color);
+        }
+        .policy-link:hover {
+            color: var(--secondary-accent);
+        }
+        
+        /* Policy Detail View */
+        #policy-detail-content p {
+            line-height: 1.6;
+            color: var(--text-secondary);
+            font-size: 0.95em;
+            white-space: pre-wrap;
+            margin-bottom: 20px;
+        }
+        .back-btn {
+            background: var(--card-bg); /* Now maps to --bg-sidebar */
+            color: var(--text-primary);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 15px;
+            transition: background 0.2s;
+        }
+        .back-btn:hover {
+            background: var(--border-color);
+        }
+
+        /* Theme Switch (Slider) */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 45px;
+            height: 25px;
+        }
+        .switch input { 
+            opacity: 0; 
+            width: 0; 
+            height: 0; 
+            pointer-events: none;
+            position: absolute;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--border-color);
+            transition: 0.4s;
+            border-radius: var(--border-radius-full);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 17px;
+            width: 17px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: var(--accent-color);
+            box-shadow: 0 0 5px var(--accent-color);
+        }
+        input:checked + .slider:before {
+            transform: translateX(20px);
+        }
+
+
+        /* ----------------------------------------------------
+         * 9. BOTTOM NAVIGATION (Mobile/Desktop)
+         * ----------------------------------------------------
+         */
+        #bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: var(--secondary-bg); /* Now maps to --bg-navbar */
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            z-index: 900;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 0.75em;
+            cursor: pointer;
+            padding: 5px;
+            transition: color 0.2s, transform 0.1s;
+            flex: 1;
+            max-width: 80px;  
+        }
+
+        .nav-item i {
+            font-size: 1.4em;
+            margin-bottom: 2px;
+        }
+
+        .nav-item.active,
+        .nav-item:hover {
+            color: var(--accent-color);
+            text-shadow: 0 0 5px var(--glow-shadow);
+            transform: translateY(-3px);
+        }
+        
+        /* Admin button styling to match nav-item */
+        #nav-admin {
+            text-decoration: none; 
+            color: var(--text-secondary); 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 5px; 
+            flex: 1;
+            max-width: 80px; 
+        }
+        #nav-admin:hover,
+        #nav-admin.active {
+            color: var(--secondary-accent); 
+            text-decoration: none;
+            text-shadow: 0 0 5px rgba(255, 7, 122, 0.5);
+            transform: translateY(-3px);
+        }
+
+       /* ----------------------------------------------------
+ * SOLID DARK BORDER & CYAN HOVER GLOW
+ * ----------------------------------------------------
+ */
+.product-grid-card {
+    /* Existing background and corner styles */
+    background-color: var(--card-bg);
+    border-radius: var(--border-radius-lg);
+    overflow: hidden;
+    cursor: pointer;
+    
+    /* 👇 MAIN CHANGE: SOLID DARK BORDER 👇 */
+    border: 5px solid var(--border-color); /* Use a defined dark border color */
+    
+    /* Default box shadow (keeping it subtle when not hovered) */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    
+    /* Animation transition */
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s;
+    position: relative;
+}
+
+.product-grid-card:hover {
+    /* Hover state */
+    transform: translateY(-5px);
+    
+    /* 👇 MAIN CHANGE: NEON CYAN SHADOW/GLOW ON HOVER 👇 */
+    box-shadow: 0 0 20px var(--glow-shadow), 0 0 10px var(--accent-color); /* Brighter Cyan glow/shadow */
+    
+    /* Change border color on hover (Optional: makes it pop) */
+    border-color: var(--accent-color); 
+}
+    </style>
+</head>
+<body>
+    
+    <header id="user-header">
+        <div class="logo">
+            <i class="fas fa-shopping-cart"></i> DigiKart
+        </div>
+        <div id="header-search-container">
+            <input type="search" id="header-search-input" placeholder="Search products, categories...">
+            <i class="fas fa-search"></i>
+        </div>
+    </header>
+    
+    <nav id="desktop-nav">
+        <ul>
+            <li><a href="#" onclick="handlePolicyLink('about'); return false;">About Us</a></li>
+            <li><a href="#" onclick="handlePolicyLink('contact'); return false;">Contact Us</a></li>
+            <li><a href="#" onclick="handlePolicyLink('refund'); return false;">Refund Policy</a></li>
+            <li><a href="#" onclick="handlePolicyLink('terms'); return false;">Terms & Conditions</a></li>
+            <li><a href="#" onclick="handlePolicyLink('delivery'); return false;">Delivery Policy</a></li>
+            <li><a href="#" onclick="handlePolicyLink('privacy'); return false;">Privacy Policy</a></li>
+            <li><a href="#" onclick="handlePolicyLink('copyright'); return false;">Copyright</a></li>
+        </ul>
+    </nav>
+
+    <main id="main-content">
+
+        <section id="category-chips-container">
+            <div id="category-chips">
+                <div class="chip active" data-category="All">All</div>
+                </div>
+        </section>
+        
+        <section>
+            <div id="products-grid">
+                </div>
+            <div id="empty-grid">No products found matching your criteria.</div>
+        </section>
+
+    </main>
+
+    <nav id="bottom-nav">
+        <div class="nav-item active" id="nav-home">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </div>
+        <div class="nav-item" id="nav-search">
+            <i class="fas fa-search"></i>
+            <span>Search</span>
+        </div>
+        <div class="nav-item" id="nav-favorites">
+            <i class="fas fa-heart"></i>
+            <span>Favorites</span>
+        </div>
+        <div class="nav-item" id="nav-policies">
+            <i class="fas fa-bars"></i>
+            <span>More</span>
+        </div>
+        <a href="admin.html" class="nav-item" target="_blank" id="nav-admin">
+            <i class="fas fa-user-shield"></i>
+            <span>Admin</span>
+        </a>
+        <div class="nav-item" id="nav-settings">
+            <i class="fas fa-cog"></i>
+            <span>Settings</span>
+        </div>
+    </nav>
+
+    <div id="product-detail-modal" class="modal-overlay" style="display: none;">
+        <button id="modal-close-btn"><i class="fas fa-times"></i></button>
+        <div class="modal-content">
+
+            <div id="modal-content-area">
+                <div class="modal-header-content">
+                    <img id="modal-image" class="modal-product-image" alt="Product Image">
+                    <div class="modal-details">
+                        <h2 id="modal-title"></h2>
+                        <div id="modal-category" class="modal-category"></div>
+                        <p id="modal-rating-info" style="font-weight: bold;"></p> 
+                        
+                        <div id="download-container-wrapper">
+                            <div id="serial-key-form-wrapper" style="display: none;">
+                                <h4>🔐 Enter Serial Key to Unlock Download:</h4>
+                                <input type="text" id="serial-key-input" placeholder="Your Unique Serial Key" required>
+                                <button id="serial-key-submit-btn"><i class="fas fa-key"></i> Verify Key</button>
+                                <div id="serial-key-message" class="form-message"></div>
+                            </div>
+                            
+                            <div id="download-links-container">
+                                </div>
+                        </div>
+
+                        <div class="modal-actions-group">
+                            <button id="btn-favorite-product" class="btn-favorite"><i class="fas fa-heart"></i> <span id="favorite-text">Favorite</span></button>
+                            <button id="btn-report-link" class="btn-report"><i class="fas fa-flag"></i> Report Link</button>
+                        </div>
+
+                        <p id="modal-description" style="margin-top: 15px;"></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-auth-modal" class="modal-overlay" style="display: none;">
+        <button id="settings-modal-close-btn" class="modal-close-btn"><i class="fas fa-times"></i></button>
+        
+        <div id="settings-modal-content" style="display: none;">
+            <h2>Settings</h2>
+            <div id="profile-info" class="setting-card" style="margin-bottom: 20px; cursor: default;">
+                <i class="fas fa-user-circle"></i>
+                <div class="setting-details">
+                    <h4 id="profile-name">Guest User</h4>
+                    <p id="profile-status">Public Mode</p>
+                </div>
+            </div>
+
+            <div class="setting-card" id="settings-theme-toggle">
+                <i class="fas fa-adjust"></i>
+                <div class="setting-details">
+                    <h4>Dark Mode / Light Mode</h4>
+                    <p>Change application appearance</p>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="theme-switch">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="setting-card" id="settings-favorites">
+                <i class="fas fa-heart"></i>
+                <div class="setting-details">
+                    <h4>My Favorites</h4>
+                    <p id="favorites-count">0 products saved locally</p>
+                </div>
+            </div>
+
+            <div class="setting-card" style="cursor: default;">
+                <i class="fas fa-info-circle"></i>
+                <div class="setting-details">
+                    <h4>App Version</h4>
+                    <p>1.0.0 (RTDB)</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="policy-modal-content" style="display: none;">
+            <h2>Policies & Links</h2>
+            <div id="policy-list-container">
+                <a href="#" class="policy-link" onclick="handlePolicyLink('about', true); return false;"><i class="fas fa-info-circle"></i> About Us</a>
+                <a href="#" class="policy-link" onclick="handlePolicyLink('contact', true); return false;"><i class="fas fa-phone"></i> Contact Us</a>
+                <a href="#" class="policy-link" onclick="handlePolicyLink('refund', true); return false;"><i class="fas fa-undo"></i> Refund Policy</a>
+                <a href="#" class="policy-link" onclick="handlePolicyLink('terms', true); return false;"><i class="fas fa-file-contract"></i> Terms & Conditions</a>
+                <a href="#" class="policy-link" onclick="handlePolicyLink('delivery', true); return false;"><i class="fas fa-shipping-fast"></i> Delivery Policy</a>
+                <a href="#" class="policy-link" onclick="handlePolicyLink('privacy', true); return false;"><i class="fas fa-user-shield"></i> Privacy Policy</a>
+                <a href="#" class="policy-link" onclick="handlePolicyLink('copyright', true); return false;"><i class="fas fa-copyright"></i> Copyright</a>
+            </div>
+        </div>
+        
+        <div id="policy-detail-content" style="display: none;">
+            </div>
+    </div>
+
+
+    <script>
+        // Replace with your Firebase project credentials
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5-mr13QVSqizf8SxeteyQ-PzRv2rTI88",
+            authDomain: "eastern-perigee-434812-b2.firebaseapp.com",
+            databaseURL: "https://eastern-perigee-434812-b2-default-rtdb.firebaseio.com",
+            projectId: "eastern-perigee-434812-b2",
+            storageBucket: "eastern-perigee-434812-b2.firebasestorage.app",
+            messagingSenderId: "669989528602",
+            appId: "1:669989528602:web:727ebf56c00a83fbf45da3",
+            measurementId: "G-VQ203GY2ZE"
+        };
+
+        // ------------------------------------------------
+        // 1. GLOBAL VARIABLES & DOM ELEMENTS
+        // ------------------------------------------------
+        let firebaseApp;
+        let auth;
+        let db;
+        let currentUser = null; // Stays null as login is disabled
+        let allProducts = [];
+        let favorites = [];
+        let activeProductDetails = null; // Stores details of the currently open product
+        
+        let activeFilterCategory = 'All';
+        let isFavoritesView = false;
+        
+        // DOM Elements Cache
+        const mainContent = document.getElementById('main-content');
+        const headerSearchInput = document.getElementById('header-search-input');
+        const categoryChips = document.getElementById('category-chips');
+        const productsGrid = document.getElementById('products-grid');
+        const emptyGrid = document.getElementById('empty-grid');
+        const detailModal = document.getElementById('product-detail-modal');
+        const settingsAuthModal = document.getElementById('settings-auth-modal');
+        const policyModalContent = document.getElementById('policy-modal-content');
+        const policyDetailContent = document.getElementById('policy-detail-content');
+        const settingsModalContent = document.getElementById('settings-modal-content');
+        const themeSwitch = document.getElementById('theme-switch');
+        const downloadLinksContainer = document.getElementById('download-links-container');
+        const navHome = document.getElementById('nav-home');
+        const navFavorites = document.getElementById('nav-favorites');
+        const navPolicies = document.getElementById('nav-policies');
+        const navSettings = document.getElementById('nav-settings');
+        // New/Updated DOM elements for Serial Key feature
+        const serialKeyFormWrapper = document.getElementById('serial-key-form-wrapper');
+        const serialKeyInput = document.getElementById('serial-key-input');
+        const serialKeySubmitBtn = document.getElementById('serial-key-submit-btn');
+        const serialKeyMessage = document.getElementById('serial-key-message');
+        const modalRatingInfo = document.getElementById('modal-rating-info');
+
+
+        // Policy Texts Data
+        const policyContent = {
+            about: { 
+                title: "About Us", 
+                text: "Welcome to DigiKart, your trusted destination for premium digital and physical products. Since our inception in 2024, we have been committed to creating a platform that blends innovation, reliability, and customer satisfaction. At DigiKart, we don’t just deliver products—we deliver experiences that empower individuals and businesses to achieve more. Our mission is to provide unique, valuable, and future-ready resources that inspire growth and success. With a secure, fast, and user-friendly interface, DigiKart ensures that every interaction is seamless, efficient, and rewarding. We envision becoming a global hub where creativity meets technology, offering solutions that truly make a difference in your journey." 
+            },
+            contact: { 
+                title: "Contact Us", 
+                text: "At DigiKart, we value communication and are always here to assist you. Whether you have questions, feedback, or require support, our dedicated team is ready to help. \n\nEmail: dellofficial795@gmail.com \nPhone: +91 8017918011 (Mon–Fri, 9:00 AM – 5:00 PM IST) \nAddress: Biju Bigha, Nawada, Bihar, India \n\nWe strive to respond promptly to all inquiries and ensure that your experience with DigiKart remains smooth and satisfying." 
+            },
+            refund: { 
+                title: "Refund Policy", 
+                text: "Your satisfaction is our priority. DigiKart offers a 30-day hassle-free refund guarantee for all paid digital products, provided they have not been extensively used, downloaded multiple times, or exploited beyond fair usage. For physical goods, returns are accepted within 14 days of receipt, provided the item is unused, undamaged, and in its original packaging. Refunds are processed swiftly once the returned product is inspected and approved. To initiate a refund, please contact our support team with your order ID and relevant details. We aim to make the refund process transparent, fair, and customer-friendly." 
+            },
+            terms: { 
+                title: "Terms & Conditions", 
+                text: "By accessing or using DigiKart, you agree to abide by our Terms & Conditions. These terms govern the use of our platform, including rules on user conduct, intellectual property rights, limitations of liability, and dispute resolution. Users are expected to engage responsibly, respect content ownership, and comply with applicable laws. DigiKart reserves the right to update or modify these terms at any time, and continued use of the platform constitutes acceptance of the latest version. We encourage all users to review these terms regularly to stay informed about their rights and responsibilities." 
+            },
+            delivery: { 
+                title: "Delivery Policy", 
+                text: "Digital products are delivered instantly via secure download links, while physical orders ship within 2–3 business days and typically arrive in 5–10 days with tracking provided." 
+            },
+
+            privacy: { 
+                title: "Privacy Policy", 
+                text: "At DigiKart, we respect and protect your privacy. All personal information collected—including name, email, contact details, and purchase history—is used solely for processing orders, enhancing your shopping experience, and improving our services. We do not sell, trade, or share your data with unauthorized third parties. DigiKart employs industry-standard encryption, secure payment gateways, and advanced security protocols to safeguard your information. By using our platform, you consent to the collection and use of your data in accordance with this policy. We remain committed to transparency and the highest standards of data protection." 
+            },
+            copyright: { 
+                title: "Copyright", 
+                text: "© 2025 DigiKart. All content on this website—including digital resources, product designs, images, text, and original material—is protected under international copyright laws. Unauthorized reproduction, distribution, modification, or resale of any paid product is strictly prohibited and may result in legal action. DigiKart retains full ownership of its intellectual property, and users are granted limited rights to access and use purchased products for personal or business purposes only. Any misuse or infringement of our content will be addressed with appropriate legal measures to protect our brand and customers." 
+            }
+        };
+
+
+        // ------------------------------------------------
+        // 2. THEME MANAGEMENT (Local Storage)
+        // ------------------------------------------------
+
+        function initializeTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            setTheme(savedTheme);
+            if (themeSwitch) {
+                themeSwitch.checked = savedTheme === 'light';
+            }
+        }
+
+        function setTheme(theme) {
+            document.body.classList.toggle('light-mode', theme === 'light');
+            localStorage.setItem('theme', theme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            setTheme(newTheme);
+        }
+
+
+        // ------------------------------------------------
+        // 3. FIREBASE INITIALIZATION & DATA LOADING
+        // ------------------------------------------------
+
+        function initializeFirebase() {
+            try {
+                firebaseApp = firebase.initializeApp(firebaseConfig);
+                auth = firebaseApp.auth();
+                db = firebaseApp.database();
+                loadInitialData();
+            } catch (error) {
+                console.error("Firebase initialization failed:", error);
+            }
+        }
+
+        function loadInitialData() {
+            loadFavoritesFromLocal();
+            // Load 'movies' (products) data from Firebase RTDB
+            db.ref('movies').on('value', (snapshot) => {
+                const products = snapshot.val();
+                allProducts = [];
+                const categories = new Set();
+                categories.add('All');
+
+                if (products) {
+                    Object.keys(products).forEach(key => {
+                        const product = { ...products[key], id: key };
+                        // Ensure required fields exist, defaulting to 0 or []
+                        product.price = product.price || 0;
+                        // Normalize links and keys, Firebase saves empty arrays as 'null'
+                        product.downloadLinks = Array.isArray(product.downloadLinks) ? product.downloadLinks : [];
+                        product.serialKeys = Array.isArray(product.serialKeys) ? product.serialKeys : [];
+                        
+                        allProducts.push(product);
+                        categories.add(product.genre);
+                    });
+                    
+                    // Sort by timestamp (most recent first)
+                    allProducts.sort((a, b) => b.timestamp - a.timestamp);
+                }
+                
+                initializeCategoryChips(Array.from(categories));
+                renderProducts();
+            }, (error) => {
+                console.error("Error loading initial products data:", error);
+            });
+        }
+
+        // ------------------------------------------------
+        // 4. PRODUCT RENDERING (Grid & Filtering)
+        // ------------------------------------------------
+
+        function initializeCategoryChips(categories) {
+            categoryChips.innerHTML = '';
+            categories.forEach(category => {
+                const chip = document.createElement('div');
+                chip.className = `chip${category === activeFilterCategory ? ' active' : ''}`;
+                chip.dataset.category = category;
+                chip.textContent = category;
+                chip.addEventListener('click', () => filterByCategory(category));
+                categoryChips.appendChild(chip);
+            });
+        }
+
+        function filterByCategory(category) {
+            activeFilterCategory = category;
+            isFavoritesView = false;
+            
+            // Update chip active state
+            document.querySelectorAll('.chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.category === category);
+            });
+            
+            headerSearchInput.value = '';
+            navHome.classList.add('active'); // Assume category filter implies Home view
+            navFavorites.classList.remove('active');
+            
+            renderProducts();
+        }
+
+        function filterProductsBySearch() {
+            const searchTerm = headerSearchInput.value.toLowerCase().trim();
+            isFavoritesView = false;
+            
+            // Deactivate all chips and nav items
+            document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+            document.querySelectorAll('#bottom-nav .nav-item').forEach(item => item.classList.remove('active'));
+            
+            // If search is active, keep no chips active, and no bottom nav item (unless 'Search' is clicked)
+            if (!searchTerm) {
+                // If search is cleared, revert to 'All'
+                 activeFilterCategory = 'All';
+                 document.querySelector('.chip[data-category="All"]').classList.add('active');
+                 navHome.classList.add('active');
+            } else {
+                 activeFilterCategory = ''; // Temporarily override category filter
+            }
+            
+            renderProducts(searchTerm);
+        }
+
+        function renderProducts(searchTerm = headerSearchInput.value.toLowerCase().trim()) {
+            let filteredProducts = allProducts;
+            
+            if (isFavoritesView) {
+                filteredProducts = allProducts.filter(product => favorites.includes(product.id));
+                emptyGrid.textContent = "You haven't added any products to your favorites yet.";
+                document.getElementById('category-chips-container').style.display = 'none';
+            } else if (activeFilterCategory && activeFilterCategory !== 'All') {
+                filteredProducts = allProducts.filter(product => product.genre === activeFilterCategory);
+                emptyGrid.textContent = `No products found in the "${activeFilterCategory}" category.`;
+                document.getElementById('category-chips-container').style.display = 'block';
+            } else {
+                // Home/All view or search
+                document.getElementById('category-chips-container').style.display = 'block';
+            }
+
+
+            if (searchTerm) {
+                filteredProducts = filteredProducts.filter(product =>
+                    product.title.toLowerCase().includes(searchTerm) ||
+                    product.genre.toLowerCase().includes(searchTerm) ||
+                    product.description.toLowerCase().includes(searchTerm) // Added description search
+                );
+                emptyGrid.textContent = `No products found matching "${searchTerm}".`;
+                // In search view, chips are functionally hidden (controlled by the filter logic)
+                document.getElementById('category-chips-container').style.display = 'none';
+            }
+            
+            productsGrid.innerHTML = '';
+
+            if (filteredProducts.length === 0) {
+                emptyGrid.style.display = 'block';
+                return;
+            } else {
+                emptyGrid.style.display = 'none';
+            }
+
+            filteredProducts.forEach(product => {
+                productsGrid.appendChild(createProductGridCard(product));
+            });
+        }
+
+        function createProductGridCard(product) {
+            const card = document.createElement('div');
+            card.className = 'product-grid-card';
+            card.setAttribute('role', 'button');
+            card.setAttribute('aria-label', `Open details for ${product.title}`);
+            card.dataset.id = product.id;
+            card.addEventListener('click', () => openProductDetail(product));
+            
+            const price = product.price || 0;
+            const isFree = price === 0;
+            const priceText = isFree ? 'FREE' : `PAID (${price})`;
+            const priceClass = isFree ? 'free' : '';
+            
+            card.innerHTML = `
+                <div class="product-image-wrapper">
+                    <div class="product-price-tag ${priceClass}">${priceText}</div>
+                    <img src="${product.poster}" alt="${product.title} Image" loading="lazy" onerror="this.onerror=null;this.src='https://via.placeholder.com/180x270?text=No+Image';">
+                </div>
+                <div class="card-details">
+                    <h4>${product.title}</h4>
+                    <p>${product.genre}</p>
+                </div>
+            `;
+            return card;
+        }
+
+        // ------------------------------------------------
+        // 5. PRODUCT DETAIL MODAL
+        // ------------------------------------------------
+
+        function openProductDetail(product) {
+            // --- 1. Reset Modal State ---
+            activeProductDetails = product;
+            detailModal.dataset.productId = product.id;
+            downloadLinksContainer.innerHTML = '';
+            serialKeyInput.value = '';
+            serialKeyMessage.style.display = 'none';
+            serialKeyFormWrapper.style.display = 'none';
+
+
+            // --- 2. Update Content ---
+            document.getElementById('modal-title').textContent = product.title;
+            document.getElementById('modal-category').textContent = product.genre;
+            document.getElementById('modal-image').src = product.poster;
+            document.getElementById('modal-image').alt = `${product.title} Image`;
+            document.getElementById('modal-description').textContent = product.description;
+            
+            // Set Price/Status Info
+            const isPaid = product.price > 0;
+            if (isPaid) {
+                modalRatingInfo.textContent = `PAID PRODUCT | Price: ${product.price}`;
+                modalRatingInfo.style.color = 'var(--secondary-accent)'; // Use Secondary Accent for Paid
+            } else {
+                modalRatingInfo.textContent = 'FREE DOWNLOAD';
+                modalRatingInfo.style.color = 'var(--success-color)'; // Use Success Color for Free
+            }
+
+            // Favorite Button State
+            const favoriteBtn = document.getElementById('btn-favorite-product');
+            const isFavorited = favorites.includes(product.id);
+            favoriteBtn.classList.toggle('favorited', isFavorited);
+            document.getElementById('favorite-text').textContent = isFavorited ? 'Favorited' : 'Favorite';
+
+            // --- 3. Handle Download Links or Serial Key Form ---
+            // If the product is PAID AND has serial keys, show the key form.
+            if (isPaid && product.serialKeys.length > 0) {
+                 renderSerialKeyForm(product.id, product.serialKeys);
+            } else {
+                // If FREE, or PAID but no keys are set in DB (links are open by default)
+                renderDownloadLinks(product.downloadLinks);
+            }
+
+
+            // --- 4. Display Modal ---
+            // Action Button Event Listeners
+            favoriteBtn.onclick = () => toggleFavorite(product.id);
+            document.getElementById('btn-report-link').onclick = () => reportBrokenLink(product);
+            
+            detailModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function showMessage(type, message, element, duration = 3000) {
+            element.textContent = message;
+            element.className = `form-message msg-${type}`;
+            element.style.display = 'block';
+            setTimeout(() => {
+                element.style.display = 'none';
+            }, duration);
+        }
+
+        function renderDownloadLinks(links) {
+            downloadLinksContainer.innerHTML = '';
+            serialKeyFormWrapper.style.display = 'none';
+
+            if (!links || links.length === 0) {
+                 downloadLinksContainer.innerHTML = `<p style="color: var(--danger-color); font-size: 0.9em; text-align: center;">&#x26A0; Download links are currently missing or broken. Please report the link.</p>`;
+                 return;
+            }
+
+            links.forEach((link, index) => {
+                const downloadBtn = document.createElement('a');
+                downloadBtn.className = `download-link-btn ${index > 0 ? 'secondary' : ''}`;
+                downloadBtn.href = link.url;
+                downloadBtn.target = '_blank';
+                // Sanitize link title
+                const linkTitle = link.title || `Link ${index + 1}`;
+                downloadBtn.innerHTML = `<i class="fas fa-download"></i> Download: ${linkTitle}`;
+                downloadLinksContainer.appendChild(downloadBtn);
+            });
+        }
+        
+        function renderSerialKeyForm(productId, validKeys) {
+            downloadLinksContainer.innerHTML = '';
+            serialKeyFormWrapper.style.display = 'block';
+            serialKeyInput.value = '';
+            serialKeyMessage.style.display = 'none';
+
+            // Check if user has a valid key saved in session/local storage for this product
+            // NOTE: Original code was updated to remove localStorage key check, keeping it simple: always require verification.
+            
+            serialKeySubmitBtn.onclick = () => verifySerialKey(productId, validKeys);
+        }
+        
+        function verifySerialKey(productId, validKeys) {
+            serialKeyMessage.style.display = 'none';
+            const inputKey = serialKeyInput.value.trim();
+            
+            if (!inputKey) {
+                 return showMessage('error', 'Please enter a key.', serialKeyMessage, 3000);
+            }
+
+            // Simple key validation against the array of keys from Firebase
+            if (validKeys.includes(inputKey)) {
+                // Key is valid - Display links
+                renderDownloadLinks(activeProductDetails.downloadLinks);
+                serialKeyFormWrapper.style.display = 'none';
+                showMessage('success', 'ACCESS GRANTED. Links unlocked.', serialKeyMessage, 5000);
+            } else {
+                // Key is invalid
+                serialKeyInput.value = '';
+                showMessage('error', 'ACCESS DENIED. Invalid Serial Key.', serialKeyMessage, 5000);
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('product-detail-modal').style.display = 'none';
+            document.getElementById('settings-auth-modal').style.display = 'none';
+            document.body.style.overflow = 'auto';
+            // Hide all setting/policy content children
+            settingsModalContent.style.display = 'none';
+            policyModalContent.style.display = 'none';
+            policyDetailContent.style.display = 'none';
+            
+            // Reset nav state to home if modal was policies/settings
+             if (navPolicies.classList.contains('active') || navSettings.classList.contains('active')) {
+                 document.querySelectorAll('#bottom-nav .nav-item').forEach(item => item.classList.remove('active'));
+                 navHome.classList.add('active');
+             }
+        }
+
+        // ------------------------------------------------
+        // 6. FAVORITES (Local Storage)
+        // ------------------------------------------------
+
+        function loadFavoritesFromLocal() {
+            try {
+                const storedFavorites = localStorage.getItem('favorites');
+                favorites = storedFavorites ? JSON.parse(storedFavorites) : [];
+            } catch (e) {
+                console.error("Error loading favorites from localStorage:", e);
+                favorites = [];
+            }
+            updateFavoritesUI();
+        }
+
+        function saveFavoritesToLocal() {
+            try {
+                localStorage.setItem('favorites', JSON.stringify(favorites));
+            } catch (e) {
+                console.error("Error saving favorites to localStorage:", e);
+            }
+            updateFavoritesUI();
+            if (isFavoritesView) {
+                renderProducts(); // Re-render if currently viewing favorites
+            }
+        }
+
+        function toggleFavorite(productId) {
+            const index = favorites.indexOf(productId);
+            const favoriteBtn = document.getElementById('btn-favorite-product');
+            
+            if (index > -1) {
+                favorites.splice(index, 1);
+                favoriteBtn.classList.remove('favorited');
+                document.getElementById('favorite-text').textContent = 'Favorite';
+            } else {
+                favorites.push(productId);
+                favoriteBtn.classList.add('favorited');
+                document.getElementById('favorite-text').textContent = 'Favorited';
+            }
+            
+            saveFavoritesToLocal();
+        }
+
+        function updateFavoritesUI() {
+            const countElement = document.getElementById('favorites-count');
+            if (countElement) {
+                countElement.textContent = `${favorites.length} product${favorites.length !== 1 ? 's' : ''} saved locally`;
+            }
+        }
+        
+        function showFavoritesView() {
+            isFavoritesView = true;
+            activeFilterCategory = ''; // Clear category filter to show all favorites
+            headerSearchInput.value = ''; // Clear search
+
+            // Update nav active state
+            document.querySelectorAll('#bottom-nav .nav-item').forEach(item => item.classList.remove('active'));
+            navFavorites.classList.add('active');
+            
+            // Deactivate all chips
+             document.querySelectorAll('.chip').forEach(chip => chip.classList.remove('active'));
+
+            // Hide chips
+            document.getElementById('category-chips-container').style.display = 'none';
+            
+            renderProducts();
+        }
+        
+        function showHomeView() {
+            isFavoritesView = false;
+            activeFilterCategory = 'All';
+
+            // Update nav active state
+            document.querySelectorAll('#bottom-nav .nav-item').forEach(item => item.classList.remove('active'));
+            navHome.classList.add('active');
+            
+            // Reset chip active state to 'All'
+            document.querySelectorAll('.chip').forEach(chip => {
+                chip.classList.toggle('active', chip.dataset.category === 'All');
+            });
+            headerSearchInput.value = '';
+            
+            // Show chips
+            document.getElementById('category-chips-container').style.display = 'block';
+            
+            renderProducts();
+        }
+
+        // ------------------------------------------------
+        // 7. REPORT BROKEN LINK
+        // ------------------------------------------------
+        
+        function reportBrokenLink(product) {
+            if (confirm(`INITIATE REPORT: Do you want to report a broken download link for "${product.title}"?`)) {
+                db.ref('reports').push({
+                    productId: product.id,
+                    productTitle: product.title,
+                    userId: 'Anonymous',
+                    timestamp: firebase.database.ServerValue.TIMESTAMP
+                })
+                .then(() => {
+                    alert(`REPORT SUCCESSFUL: Your report for "${product.title}" has been submitted for review.`);
+                })
+                .catch(error => {
+                    console.error("Report Error:", error);
+                    alert("REPORT FAILED. Please check connection.");
+                });
+            }
+        }
+
+        // ------------------------------------------------
+        // 8. MODAL AND UI CONTROL
+        // ------------------------------------------------
+        
+        function openSettingsModal() {
+            // Update nav active state
+            document.querySelectorAll('#bottom-nav .nav-item').forEach(item => item.classList.remove('active'));
+            navSettings.classList.add('active');
+
+            settingsAuthModal.style.display = 'block';
+            settingsModalContent.style.display = 'block';
+            policyModalContent.style.display = 'none';
+            policyDetailContent.style.display = 'none';
+            document.body.style.overflow = 'hidden';
+            updateFavoritesUI(); // Ensure count is up to date
+        }
+        
+        function openPolicyList() {
+            // Update nav active state
+            document.querySelectorAll('#bottom-nav .nav-item').forEach(item => item.classList.remove('active'));
+            navPolicies.classList.add('active');
+
+            settingsAuthModal.style.display = 'block';
+            policyModalContent.style.display = 'block';
+            policyDetailContent.style.display = 'none';
+            settingsModalContent.style.display = 'none';
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function handlePolicyLink(policyKey, fromList = false) {
+            const data = policyContent[policyKey];
+            if (!data) return;
+
+            // Hide other modal views
+            policyModalContent.style.display = 'none';
+            settingsModalContent.style.display = 'none';
+            
+            // Determine the back action
+            const backAction = fromList ? 'openPolicyList();' : 'closeModal();';
+            const backText = fromList ? 'Back to Links' : 'Back to Home';
+
+            // Prepare and inject the detail view content
+            const detailHTML = `
+                <button class="back-btn" onclick="${backAction}"><i class="fas fa-arrow-left"></i> ${backText}</button>
+                <h2>${data.title}</h2>
+                <p>${data.text}</p>
+            `;
+
+            policyDetailContent.innerHTML = detailHTML;
+            policyDetailContent.style.display = 'block';
+            
+            // Ensure the main modal overlay is visible
+            settingsAuthModal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+
+            return false;
+        }
+
+
+        // ------------------------------------------------
+        // 9. EVENT LISTENERS
+        // ------------------------------------------------
+        
+        window.addEventListener('DOMContentLoaded', () => {
+            initializeTheme();
+            initializeFirebase();
+            
+            // Search functionality
+            headerSearchInput.addEventListener('input', filterProductsBySearch);
+            document.getElementById('nav-search').addEventListener('click', () => {
+                 // Deactivate all nav items and activate search
+                document.querySelectorAll('#bottom-nav .nav-item').forEach(item => item.classList.remove('active'));
+                document.getElementById('nav-search').classList.add('active');
+
+                headerSearchInput.focus();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            // Bottom Nav
+            navHome.addEventListener('click', showHomeView);
+            navFavorites.addEventListener('click', showFavoritesView);
+            navPolicies.addEventListener('click', openPolicyList);
+            navSettings.addEventListener('click', openSettingsModal);
+            
+            // Detail Modal Close
+            document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+            
+            // Settings/Policy Modal Close
+            document.getElementById('settings-modal-close-btn').addEventListener('click', closeModal);
+            
+            // Theme Toggle
+            // Attaching to the card to make the whole area clickable
+            document.getElementById('settings-theme-toggle').addEventListener('click', () => {
+                themeSwitch.checked = !themeSwitch.checked;
+                toggleTheme();
+            });
+            themeSwitch.addEventListener('change', toggleTheme);
+            
+            // Settings to Favorites View
+            document.getElementById('settings-favorites').addEventListener('click', () => {
+                closeModal();
+                showFavoritesView();
+            });
+            
+            // Ensure serial key submission uses the verification function
+            serialKeySubmitBtn.addEventListener('click', (e) => {
+                 e.preventDefault();
+                 // The actual verification logic is executed via the dynamic click handler set in openProductDetail
+            });
+        });
+
+    </script>
+</body>
+</html>
